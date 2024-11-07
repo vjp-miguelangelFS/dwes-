@@ -5,6 +5,7 @@ require 'entities/ImagenGaleria.class.php';
 require 'entities/connection.class.php';
 require_once 'entities/QuerryBuilder.class.php';
 require_once 'exceptions/AppException.class.php';
+require_once 'repository/ImagenGalariaRepository.class.php';
 
 $errores = [];
 $descripcion = '';
@@ -14,7 +15,9 @@ try {
 
     App::bind('config', $config);
 
-    $connection = App::getConnection(); // Si funciona elimina el database en config.php y quitas los corchetes aqui
+    $imagenRepository = new ImagenGaleriaRepository();
+
+    // $connection = App::getConnection(); // Si funciona elimina el database en config.php y quitas los corchetes aqui
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -29,19 +32,24 @@ try {
         // Si ocurre la función saveUploadFile es porque la imagen se ha subido correctamente
         $imagen->copyFile(ImagenGaleria::RUTA_IMAGENES_GALLERY, ImagenGaleria::RUTA_IMAGENES_PORTAFOLIO);
 
-        $sql = "INSERT INTO imagenes (nombre,descripcion) VALUES (:nombre,:descripcion)";
-        $pdoStatement = $connection->prepare($sql);
-        $parametersStatementArray = [':nombre' => $imagen->getFileName(), ':descripcion' => $descripcion];
-        //Lanzamos la sentencia y vemos si se ha ejecutado correctamente.
-        $response = $pdoStatement->execute(($parametersStatementArray));
-        if ($response === false) {
-            $errores[] = 'No se ha podido guardar la imagen en la base de datos.';
-        } else {
-            $descripcion = '';
-            $mensaje = 'Imagen guardada';
-        }
-        $querrySql = 'SELECT * FROM imagenes';
-        $querryStatement = $connection->query($querrySql);
+        // $sql = "INSERT INTO imagenes (nombre,descripcion) VALUES (:nombre,:descripcion)";
+        // $pdoStatement = $connection->prepare($sql);
+        // $parametersStatementArray = [':nombre' => $imagen->getFileName(), ':descripcion' => $descripcion];
+        // //Lanzamos la sentencia y vemos si se ha ejecutado correctamente.
+        // $response = $pdoStatement->execute(($parametersStatementArray));
+        // if ($response === false) {
+        //     $errores[] = 'No se ha podido guardar la imagen en la base de datos.';
+        // } else {
+        //     $descripcion = '';
+        //     $mensaje = 'Imagen guardada';
+        // }
+        // $querrySql = 'SELECT * FROM imagenes';
+        // $querryStatement = $connection->query($querrySql);
+
+        $imagenGaleria = new ImagenGaleria($imagen->getFileName(),$descripcion);
+        $imagenRepository->save($imagenGaleria);
+        $descripcion='';
+        $mensaje = 'Imagen guardada';
     }
 } catch (FileException $exception) {
     $errores[] = $exception->getMessage();
@@ -50,8 +58,7 @@ try {
 } catch (AppException $exception) {
     $errores[] = $exception->getMessage();
 } finally {
-    $queryBuilder = new QuerryBuilder('imagenes', 'ImagenGaleria');
-    $imagenes = $queryBuilder->findAll();
+    
+    $imagenes = $imagenRepository->findAll();
 }
-
 require 'views/galeria.view.php';
